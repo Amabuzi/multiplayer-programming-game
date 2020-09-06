@@ -1,4 +1,4 @@
-package server;
+package server; //TODO modularise
 
 import java.awt.Color;
 import java.awt.Dialog;

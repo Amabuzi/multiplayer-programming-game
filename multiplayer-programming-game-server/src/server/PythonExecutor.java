@@ -33,45 +33,8 @@ public class PythonExecutor {
 	// Method to create a file with a given name and write a given string to it:
 	public boolean createFile(String fileName, String setupCode, String code) {
 		
-		// Loop through each character:
-		for (String character: code.split("")) {
-			
-			// If the character is not allowed, replace the code with a print statement which prints the error:
-			if (!allowedCharacters.contains(character)) {
-				code = "print('Unsupported character detected: "+character+". See help for details.')\n";
-				
-				break;
-			}
-		}
-		
-		// If the code contains a blacklisted substring, replace the code with a print statement which prints the error:
-		if (code.contains("import")) {
-			code = "print('Unsupported code detected: import. See help for details.')\n";
-		}
-		if (code.contains("eval")) {
-			code = "print('Unsupported code detected: eval. See help for details.')\n";
-		}
-		if (code.contains("exec")) {
-			code = "print('Unsupported code detected: exec. See help for details.')\n";
-		}
-		
-		code = setupCode + code; // Add the setup code to the code.
-		String[] lines = code.split("\n"); // Split the code into an array which stores each line.
-		code = ""; // Reset the code string.
-		
-		// Iterate through each line, and add them back to the code string with a tab character added to the front of each of them:
-		for (String line: lines) {
-			code = code + "\t" + line + "\n";
-		}
-		
-		// Put the code in a try/except block which prints any caught exception and then raises it:
-		code = "try:\n" +
-			code +
-			"except Exception as e:\n" + 
-			"\tprint(e)\n" + 
-			"\traise";
-		
-		
+		code = failsafeCode(setupCode + sanitiseCode(code)); // Add the setup code and make the code sanitised and fail-safe.
+
 		File file = new File(System.getProperty("java.io.tmpdir")+"PythonCode\\"+fileName); // Create a File object for the file.
 		
 		// If the file doesn't exist:
@@ -105,6 +68,56 @@ public class PythonExecutor {
 			e.printStackTrace(); // Print the stack trace for debugging purposes.
 			return false; // Return false to indicate that the method was unsuccessful.
 		}
+	}
+
+
+	// Method to sanitise code to make sure that harmful code cannot be exectuted:
+	private String sanitiseCode(String code) {
+
+		// Loop through each character:
+		for (String character: code.split("")) {
+			
+			// If the character is not allowed, replace the code with a print statement which prints the error:
+			if (!allowedCharacters.contains(character)) {
+				code = "print('Unsupported character detected: "+character+". See help for details.')\n";
+				
+				break;
+			}
+		}
+		
+		// If the code contains a blacklisted substring, replace the code with a print statement which prints the error:
+		if (code.contains("import")) {
+			code = "print('Unsupported code detected: import. See help for details.')\n";
+		}
+		if (code.contains("eval")) {
+			code = "print('Unsupported code detected: eval. See help for details.')\n";
+		}
+		if (code.contains("exec")) {
+			code = "print('Unsupported code detected: exec. See help for details.')\n";
+		}
+		
+		return code;
+	}
+
+
+	// Method to make code fail-safe by wrapping it in a try-except block:
+	private String failsafeCode(String code) {
+		String[] lines = code.split("\n"); // Split the code into an array which stores each line.
+		code = ""; // Reset the code string.
+		
+		// Iterate through each line, and add them back to the code string with a tab character added to the front of each of them:
+		for (String line: lines) {
+			code = code + "\t" + line + "\n";
+		}
+		
+		// Put the code in a try/except block which prints any caught exception and then raises it:
+		code = "try:\n" +
+			code +
+			"except Exception as e:\n" + 
+			"\tprint(e)\n" + 
+			"\traise";
+
+		return code;
 	}
 	
 	

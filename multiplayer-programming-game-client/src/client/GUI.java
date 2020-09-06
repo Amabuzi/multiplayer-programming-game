@@ -1,7 +1,6 @@
-package client;
+package client; //TODO modularise
 
 import java.awt.Color;
-import java.awt.Desktop;
 import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -9,11 +8,6 @@ import java.awt.Graphics;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.geom.Rectangle2D;
-import java.io.File;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URISyntaxException;
-import java.net.URLDecoder;
 import java.util.ArrayList;
 
 import javax.swing.ButtonGroup;
@@ -56,6 +50,7 @@ public class GUI extends JFrame implements ActionListener {
 	private JButton hintButton;
 	private JButton submitButton;
 	private JButton customTestButton;
+	private JButton helpButton;
 	private JButton settingsButton;
 	
 	private JTextPane solutionTextPane;
@@ -239,7 +234,7 @@ public class GUI extends JFrame implements ActionListener {
         JButton cancelColourButton = new JButton();
 		
 		submitButton = new JButton();
-		JButton helpButton = new JButton();
+		helpButton = new JButton();
 		hintButton = new JButton();
 		customTestButton = new JButton();
 		settingsButton = new JButton();
@@ -830,7 +825,6 @@ public class GUI extends JFrame implements ActionListener {
 		// NetBeans generated code ends.
 		
 		// Add action listeners to buttons:
-		helpButton.addActionListener(this);
 		settingsButton.addActionListener(this);
 		cancelSettingsButton.addActionListener(this);
 		saveColourButton.addActionListener(this);
@@ -969,6 +963,7 @@ public class GUI extends JFrame implements ActionListener {
 		submitButton.addActionListener(main);
 		hintButton.addActionListener(main);
 		submitTestButton.addActionListener(main);
+		helpButton.addActionListener(main);
 		saveSettingsButton.addActionListener(main);
 	}
 	
@@ -978,45 +973,8 @@ public class GUI extends JFrame implements ActionListener {
 	public void actionPerformed(ActionEvent event) {
 		String command = event.getActionCommand(); // Get and store the action command used to determine what the action was.
 		
-		// If the action was pressing the help button:
-		if (command.equals("help")) {
-			
-			String helpDirectory = "res\\help.html"; // Create a variable to store the path of the help file within the project folder.
-
-			// If the program is being executed in a .jar file:
-			if (getClass().getResource("Main.class").toString().contains("jar!")) {
-
-				// Attempt to store the directory of the .jar file and use it to find the path of the help file outside of the .jar:
-				try {
-					String externalDirectory = URLDecoder.decode(ClassLoader.getSystemClassLoader().getResource(".").toURI().toString().replaceFirst("file:", ""), "UTF-8");
-					helpDirectory = externalDirectory+"/PythonGame/help.html";
-				}
-				
-				// If an exception is caught, print the stack trace (for debugging purposes), display an error message on the GUI and return:
-				catch (UnsupportedEncodingException | URISyntaxException e) {
-					e.printStackTrace();
-					showMessage("Unable to locate external directory.");
-					return;
-				}
-			}
-			
-			File helpHTMLFile = new File(helpDirectory);
-			
-			//File helpHTMLFile = new File("res/help.html"); // Create a File object for the help file.
-			
-			try { // The following line of code may throw an exception which must be caught.
-				Desktop.getDesktop().browse(helpHTMLFile.toURI()); // Open the HTML help file in a browser.
-			}
-			
-			// If an exception was caught:
-			catch (IOException e) {
-				JOptionPane.showMessageDialog(this, "Error loading help file."); // Show an error message to the user.
-				e.printStackTrace(); // Print the stack trace for debugging purposes.
-			}
-		}
-		
 		// If the action was pressing the custom test button, enable and show the custom test dialog:
-		else if (command.equals("testdialog")) {
+		if (command.equals("testdialog")) {
 			customTestDialog.setEnabled(true);
 			customTestDialog.setVisible(true);
 		}

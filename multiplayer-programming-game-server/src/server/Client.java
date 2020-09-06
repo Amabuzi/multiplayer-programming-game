@@ -1,4 +1,4 @@
-package server;
+package server; //TODO modularise
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;

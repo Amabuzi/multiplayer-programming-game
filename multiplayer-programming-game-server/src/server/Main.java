@@ -1,4 +1,4 @@
-package server;
+package server; //TODO modularise
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -35,6 +35,8 @@ public class Main implements ActionListener, Runnable {
 	private ArrayList<Client> clients = new ArrayList<Client>();
 	
 	private Problem problem; // Needed to load the problem details and to score solutions.
+
+	private SolutionRunner solutionRunner;
 	
 	// Needed to pass to Problem when it is created, so that it can execute python code:
 	private PythonExecutor pythonExecutor;
@@ -148,10 +150,10 @@ public class Main implements ActionListener, Runnable {
 								long submissionTime = System.currentTimeMillis(); // Store the current time as the submission time.
 								
 								// Score the solution and store the results:
-								int[] results = problem.scoreSolution(data, gameMode, roundStartTime, roundEndTime, submissionTime);
+								int[] results = solutionRunner.scoreSolution(data, gameMode, roundStartTime, roundEndTime, submissionTime);
 								
 								client.addScore(results[0]); // Pass the score to the Client's addScore() method.
-								ArrayList<String[]> failedResults = problem.getFailedResults(); // Get the client's failed test results.
+								ArrayList<String[]> failedResults = solutionRunner.getFailedResults(); // Get the client's failed test results.
 								client.setFailedResults(failedResults); // Pass these failed test results to the Client's setFailedResults() method.
 								client.setStatus("Waiting"); // Set the client's status to "Waiting".
 								
@@ -435,78 +437,72 @@ public class Main implements ActionListener, Runnable {
 		// If the action was pressing the button to start the round:
 		else if (command.equals("startround")) {
 			String id = gui.getFirstProblemID(); // Get the ID of the problem at the top of the problem queue table.
-			problem = new Problem(id, pythonExecutor); // Create a Problem object with this ID.
+
+			problem = ProblemLoader.loadProblem(id);
+
+			solutionRunner = new SolutionRunner(problem, pythonExecutor);
 			
-			// Check if the problem was successfully created:
-			if (problem.problemCreationSucceeded()) {
+			// Create a variable which stores the time that the round will start, and set this to 5 seconds from the current time:
+			roundStartTime = System.currentTimeMillis() + 5000;
+			
+			// If the user didn't enter a time limit for the round:
+			if (gui.getTime() == 0) {
 				
-				// Create a variable which stores the time that the round will start, and set this to 5 seconds from the current time:
-				roundStartTime = System.currentTimeMillis() + 5000;
+				// Calculate the time that the round will end by adding the time limit stated in the problem file to round's start time.
+				roundEndTime = roundStartTime + problem.getTimeLimit() * 1000;
 				
-				// If the user didn't enter a time limit for the round:
-				if (gui.getTime() == 0) {
+				gui.setTime(roundEndTime-roundStartTime); // Show the time limit on the GUI.
+			}
+			
+			// If the user entered a time which isn't invalid, calculate the time that the round will end using their entered time:
+			else if (gui.getTime() != -1) {
+				roundEndTime = roundStartTime + gui.getTime();
+			}
+			
+			// If the user entered an invalid time, tell them using the GUI and stop attempting to start the round.
+			else {
+				gui.setRoundStatus("Invalid time entered.");
+				return;
+			}
+			
+			// Show the countdown for the round on the GUI:
+			gui.startRoundCountdown(problem.getTitle(), problem.getDescription(), roundStartTime, roundEndTime);
+			
+			gameMode = gui.getChosenMode(); // Get and store the chosen game mode from the GUI.
+			
+			// Loop through the ArrayList of Client objects:
+			for (int i = 0; i < clients.size(); i++) {
+				Client client = clients.get(i); // Get the Client object in index i of the ArrayList.
+				
+				// If the client is connected:
+				if (client.isConnected()) {
+					client.sendData("NRS"); // Tell the client that a new round is starting.
 					
-					// Calculate the time that the round will end by adding the time limit stated in the problem file to round's start time.
-					roundEndTime = roundStartTime + problem.getTimeLimit() * 1000;
+					// Send the problem's details to the client:
+					client.sendData("PLT"+problem.getTitle());
+					client.sendData("PLD"+problem.getDescription());
+					client.sendData("RST"+roundStartTime);
+					client.sendData("RET"+roundEndTime);
+					client.sendData("VBN"+problem.getVariableNamesAsString());
+					client.sendData("GMD"+Integer.toString(gameMode));
 					
-					gui.setTime(roundEndTime-roundStartTime); // Show the time limit on the GUI.
+					client.setStatus("Coding"); // Change the client's status to "Coding".
+					updatePlayerTables(client); // Update the player tables so the change above is added.
 				}
 				
-				// If the user entered a time which isn't invalid, calculate the time that the round will end using their entered time:
-				else if (gui.getTime() != -1) {
-					roundEndTime = roundStartTime + gui.getTime();
-				}
-				
-				// If the user entered an invalid time, tell them using the GUI and stop attempting to start the round.
+				// If the client is not connected:
 				else {
-					gui.setRoundStatus("Invalid time entered.");
-					return;
-				}
-				
-				// Show the countdown for the round on the GUI:
-				gui.startRoundCountdown(problem.getTitle(), problem.getDescription(), roundStartTime, roundEndTime);
-				
-				gameMode = gui.getChosenMode(); // Get and store the chosen game mode from the GUI.
-				
-				// Loop through the ArrayList of Client objects:
-				for (int i = 0; i < clients.size(); i++) {
-					Client client = clients.get(i); // Get the Client object in index i of the ArrayList.
+					client.setStatus("Disconnected"); // Change the client's status to "Disconnected".
+					updatePlayerTables(client); // Update the player tables so the change above is added.
 					
-					// If the client is connected:
-					if (client.isConnected()) {
-						client.sendData("NRS"); // Tell the client that a new round is starting.
-						
-						// Send the problem's details to the client:
-						client.sendData("PLT"+problem.getTitle());
-						client.sendData("PLD"+problem.getDescription());
-						client.sendData("RST"+roundStartTime);
-						client.sendData("RET"+roundEndTime);
-						client.sendData("VBN"+problem.getVariableNamesAsString());
-						client.sendData("GMD"+Integer.toString(gameMode));
-						
-						client.setStatus("Coding"); // Change the client's status to "Coding".
-						updatePlayerTables(client); // Update the player tables so the change above is added.
-					}
+					// Remove the client's username from the ArrayList of usernames in the ClientAccepter, so that it can be used again:
+					clientAccepter.removeUsername(client.getUsername());
 					
-					// If the client is not connected:
-					else {
-						client.setStatus("Disconnected"); // Change the client's status to "Disconnected".
-						updatePlayerTables(client); // Update the player tables so the change above is added.
-						
-						// Remove the client's username from the ArrayList of usernames in the ClientAccepter, so that it can be used again:
-						clientAccepter.removeUsername(client.getUsername());
-						
-						clients.remove(client); // Remove the client from the ArrayList of clients.
-					}
+					clients.remove(client); // Remove the client from the ArrayList of clients.
 				}
 				
 				inRound = true; // Change the boolean 'inRound' to true as a round has currently started.
 				gui.removeFirstProblem(); // Move the problem at the top of the problem queue table to the bottom.
-			}
-			
-			// If the problem was not created successfully, tell the user this on the GUI.
-			else {
-				gui.setRoundStatus("Problem loading failed.");
 			}
 		}
 		
