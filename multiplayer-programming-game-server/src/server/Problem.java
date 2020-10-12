@@ -1,12 +1,5 @@
 package server;
 
-/* TODO modularise
-- Make Problem not need to load files or store a PythonExecutor
-- ResourceLoader loads the files,
-- ProblemLoader gets info from files to create Problem objects,
-- SolutionRunner runs solutions
-*/
-
 public class Problem {
 	
 	// Create variables used to store information about the problem:
