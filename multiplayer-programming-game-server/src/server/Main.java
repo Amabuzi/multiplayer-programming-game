@@ -32,7 +32,7 @@ public class Main implements ActionListener, Runnable {
 	private ClientAccepter clientAccepter; // Needed to be able to interact with the ClientAccepter.
 	
 	// Store all of the Client objects, which are needed to interact with the clients:
-	private ArrayList<Client> clients = new ArrayList<Client>();
+	private ArrayList<Player> players = new ArrayList<Player>();
 	
 	private Problem problem; // Needed to load the problem details and to score solutions.
 
@@ -63,12 +63,12 @@ public class Main implements ActionListener, Runnable {
 			
 			// If the client accepter has clients which have not yet been handled:
 			if (clientAccepter.hasNewClients()) {
-				ArrayList<Client> newClients = clientAccepter.getNewClients(); // Get the new Client objects in the form of an ArrayList.
+				ArrayList<Player> newClients = clientAccepter.getNewClients(); // Get the new Client objects in the form of an ArrayList.
 				
 				// Loop through all of the new clients and update the player table with their information:
 				for (int i = 0; i < newClients.size(); i++) {
-					Client client = newClients.get(i);
-					updatePlayerTables(client);
+					Player player = newClients.get(i);
+					updatePlayerTables(player);
 				}
 				
 				// Get and store all of the player data from the player table in the form of an Object[][]:
@@ -116,12 +116,12 @@ public class Main implements ActionListener, Runnable {
 				
 				// Loop through the new clients and send the serialised player data to each one:
 				for (int i = 0; i < newClients.size(); i++) {
-					Client client = newClients.get(i);
-					client.sendData("APD"+serialisedPlayerData);
+					Player player = newClients.get(i);
+					player.getClient().sendData("APD"+serialisedPlayerData);
 				}
 				
 				// Add all of the new Client objects to the ArrayList of clients.
-				clients.addAll(newClients);
+				players.addAll(newClients);
 			}
 			
 			// If a round is currently occurring and the current time is after the round's end time, end the round by calling endRound():
@@ -130,37 +130,37 @@ public class Main implements ActionListener, Runnable {
 			}
 			
 			// Loop through all of the clients:
-			for (int i = 0; i < clients.size(); i++) {
-				Client client = clients.get(i); // Get the client at position i of the ArrayList.
+			for (int i = 0; i < players.size(); i++) {
+				Player player = players.get(i); // Get the client at position i of the ArrayList.
 				
 				// If the client is connected:
-				if (client.isConnected()) {
+				if (player.getClient().isConnected()) {
 					
 					// If the client has sent data that has not yet been handled:
-					if (client.hasData()) {
-						String dataType = client.getDataType(); // Get the "data type" portion of the data.
-						String data = client.getData(); // Get the data portion of the data.
+					if (player.getClient().hasData()) {
+						String dataType = player.getClient().getDataType(); // Get the "data type" portion of the data.
+						String data = player.getClient().getData(); // Get the data portion of the data.
 						
 						// If the data type is a submission:
 						if (dataType.equals("SMS")) {
 							
 							// If the client's status is "Coding" (if they are in a round have haven't yet submitted):
-							if (client.getStatus().equals("Coding")) {
+							if (player.getStatus().equals("Coding")) {
 								
 								long submissionTime = System.currentTimeMillis(); // Store the current time as the submission time.
 								
 								// Score the solution and store the results:
 								int[] results = solutionRunner.scoreSolution(data, gameMode, roundStartTime, roundEndTime, submissionTime);
 								
-								client.addScore(results[0]); // Pass the score to the Client's addScore() method.
+								player.addScore(results[0]); // Pass the score to the Client's addScore() method.
 								ArrayList<String[]> failedResults = solutionRunner.getFailedResults(); // Get the client's failed test results.
-								client.setFailedResults(failedResults); // Pass these failed test results to the Client's setFailedResults() method.
-								client.setStatus("Waiting"); // Set the client's status to "Waiting".
+								player.setFailedResults(failedResults); // Pass these failed test results to the Client's setFailedResults() method.
+								player.setStatus("Waiting"); // Set the client's status to "Waiting".
 								
-								updatePlayerTables(client); // Update the player table to add the changes to the client's score and status.
+								updatePlayerTables(player); // Update the player table to add the changes to the client's score and status.
 								
-								client.sendData("EFP"+Integer.toString(results[1])); // Send the client's efficiency points to the client.
-								client.sendData("NOP"+Integer.toString(results[2])); // Send the client's number of passes to the client.
+								player.getClient().sendData("EFP"+Integer.toString(results[1])); // Send the client's efficiency points to the client.
+								player.getClient().sendData("NOP"+Integer.toString(results[2])); // Send the client's number of passes to the client.
 							}
 						} 
 						
@@ -168,11 +168,11 @@ public class Main implements ActionListener, Runnable {
 						else if (dataType.equals("HRQ")) {
 							
 							// If the client's status is "Coding" (if they are in a round have haven't yet submitted):
-							if (client.getStatus().equals("Coding")) {
-								client.sendData("HNT"+problem.getHint()); // Send a hint to the client.
-								client.addScore(-20); // Take 20 score away from the client.
+							if (player.getStatus().equals("Coding")) {
+								player.getClient().sendData("HNT"+problem.getHint()); // Send a hint to the client.
+								player.addScore(-20); // Take 20 score away from the client.
 								
-								updatePlayerTables(client); // Update the player table to add the changes to the client's score.
+								updatePlayerTables(player); // Update the player table to add the changes to the client's score.
 							}
 						}
 						
@@ -180,14 +180,14 @@ public class Main implements ActionListener, Runnable {
 						else if (dataType.equals("CTI")) {
 							
 							// If the client hasn't used up their 5 tests for this round:
-							if (client.getNumberOfTests() < 5) {
+							if (player.getNumberOfTests() < 5) {
 								String inputsString = data; // Store the inputs (data from Client.java) in a new variable.
 								String[] inputs = inputsString.split(","); // Split the single string storing the inputs into a new array.
 								
 								long timeBefore = System.currentTimeMillis(); // Store the current time.
 								
 								// Loop until more data is received or until it has been more than a second since the loop started:
-								while (!client.hasData() && System.currentTimeMillis() < timeBefore+1000) {
+								while (!player.getClient().hasData() && System.currentTimeMillis() < timeBefore+1000) {
 									try {
 										Thread.sleep(100); // Wait 100ms before checking again to reduce CPU usage.
 									} catch (InterruptedException e) {}
@@ -195,35 +195,35 @@ public class Main implements ActionListener, Runnable {
 								
 								// If it has been more than a second since the loop started, print an error message:
 								if (System.currentTimeMillis() > timeBefore+1000) {
-									System.out.println("Client "+client.getUsername()+" (IP: "+client.getIPAddress()+") "
+									System.out.println("Client "+player.getUsername()+" (IP: "+player.getClient().getIPAddress()+") "
 											+ "didn't send their solution after a test request.");
 								}
 								
 								// If the client sent a solution:
-								else if (client.getDataType().equals("TSM")) {
+								else if (player.getClient().getDataType().equals("TSM")) {
 									
 									// Create a python file with the player's solution:
-									pythonExecutor.createFile("solution.py", problem.getSetupCode(), client.getData());
+									pythonExecutor.createFile("solution.py", problem.getSetupCode(), player.getClient().getData());
 									
 									// Execute the created with the given inputs and store the output:
 									String result = pythonExecutor.executeFile("solution.py", inputs);
 									
-									client.sendData("TIP"+inputsString); // Send the inputs (as a single string) back to the client.
-									client.sendData("TOP"+result); // Send the output of the execution to the client.
-									client.setNumberOfTests(client.getNumberOfTests() + 1); // Increment the client's number of tests.
+									player.getClient().sendData("TIP"+inputsString); // Send the inputs (as a single string) back to the client.
+									player.getClient().sendData("TOP"+result); // Send the output of the execution to the client.
+									player.setNumberOfTests(player.getNumberOfTests() + 1); // Increment the client's number of tests.
 								}
 								
 								// If the client sent something else, print an error message:
 								else {
-									System.out.println("ERROR: Client "+client.getUsername()+" (IP: "+client.getIPAddress()+") "
-											+"sent "+client.getDataType()+", expected TSM.");
+									System.out.println("ERROR: Client "+player.getUsername()+" (IP: "+player.getClient().getIPAddress()+") "
+											+"sent "+player.getClient().getDataType()+", expected TSM.");
 								}
 							}
 							
 							// If the client has used up all of their tests:
 							else {
-								client.sendData("TIP"+data); // Send the inputs back to the client.
-								client.sendData("TOP"+"Only 5 tests are allowed per round."); // Send a message to the client in place of the output.
+								player.getClient().sendData("TIP"+data); // Send the inputs back to the client.
+								player.getClient().sendData("TOP"+"Only 5 tests are allowed per round."); // Send a message to the client in place of the output.
 							}
 						}
 					}
@@ -231,24 +231,24 @@ public class Main implements ActionListener, Runnable {
 				
 				// If the client is not connected:
 				else {
-					client.setStatus("Disconnected"); // Change the client's status to "Disconnected".
-					updatePlayerTables(client); // Update the player tables so the change above is added.
+					player.setStatus("Disconnected"); // Change the client's status to "Disconnected".
+					updatePlayerTables(player); // Update the player tables so the change above is added.
 					
 					// Remove the client's username from the ArrayList of usernames in the ClientAccepter, so that it can be used again:
-					clientAccepter.removeUsername(client.getUsername());
+					clientAccepter.removeUsername(player.getUsername());
 					
-					clients.remove(client); // Remove the client from the ArrayList of clients.
+					players.remove(player); // Remove the client from the ArrayList of clients.
 				}
 			}
 			
 			// If a round is currently occurring:
 			if (inRound) {
 				boolean allSubmitted = true; // Boolean to store whether all client have submitted. For now, assume every client has submitted.
-				for (int i = 0; i < clients.size(); i++) { // Loop through each client.
-					Client client = clients.get(i); // Get the client at position i.
+				for (int i = 0; i < players.size(); i++) { // Loop through each client.
+					Player player = players.get(i); // Get the client at position i.
 					
 					// If the client's status is "Coding" (if they are in a round have haven't yet submitted):
-					if (client.getStatus().equals("Coding")) {
+					if (player.getStatus().equals("Coding")) {
 						allSubmitted = false; // Change 'allSubmitted' to false as there is a client who has not submitted.
 						break; // Break out of the loop as there is no point checking the rest of the clients.
 					}
@@ -275,9 +275,9 @@ public class Main implements ActionListener, Runnable {
 		gui.endRound(); // Call the GUI object's endRound() so that the GUI can do its changes.
 		
 		int highScore = 0; // Create a variable for the high-score. Give it a temporary value of 0.
-		for (int i = 0; i < clients.size(); i++) { // Loop through each client.
-			Client client = clients.get(i); // Get the client at position i of the ArrayList.
-			int score = client.getCurrentScore(); // Get the score of that client.
+		for (int i = 0; i < players.size(); i++) { // Loop through each client.
+			Player player = players.get(i); // Get the client at position i of the ArrayList.
+			int score = player.getCurrentScore(); // Get the score of that client.
 			
 			// If this score is greater than the high-score, make this the new high-score:
 			if (score > highScore) {
@@ -285,22 +285,22 @@ public class Main implements ActionListener, Runnable {
 			}
 		}
 		
-		for (int i = 0; i < clients.size(); i++) { // Loop through each client.
-			Client client = clients.get(i); // Get the client at position i of the ArrayList.
-			int score = client.getCurrentScore(); // Get the score of that client.
+		for (int i = 0; i < players.size(); i++) { // Loop through each client.
+			Player player = players.get(i); // Get the client at position i of the ArrayList.
+			int score = player.getCurrentScore(); // Get the score of that client.
 			
 			// If the score of the client matches the high-score, call updateStats() on the client, passing true to indicate that they won:
 			if (score == highScore) {
-				client.updateStats(true);
+				player.updateStats(true);
 			}
 			
 			// If the score of the client doesn't match the high-score, call updateStats() on the client, passing false to indicate that they didn't win:
 			else {
-				client.updateStats(false);
+				player.updateStats(false);
 			}
 			
-			updatePlayerTables(client); // Update the player table so that the change to the client's stats is added.
-			client.sendData("RED"); // Send to the client an indicator that tells them that the round has ended.
+			updatePlayerTables(player); // Update the player table so that the change to the client's stats is added.
+			player.getClient().sendData("RED"); // Send to the client an indicator that tells them that the round has ended.
 		}
 		
 		inRound = false; // Update the boolean 'inRound' as a round is no longer occurring.
@@ -308,18 +308,18 @@ public class Main implements ActionListener, Runnable {
 	
 	
 	// Method to update the GUI's player table and send the update to each client:
-	private void updatePlayerTables(Client client) {
+	private void updatePlayerTables(Player player) {
 		
 		// Create an Object[] array, playerData, which stores data about the given Client object:
 		Object[] playerData = new Object[8];
-		playerData[0] = client.getUsername();
-		playerData[1] = client.getIPAddress();
-		playerData[2] = client.getStatus();
-		playerData[3] = client.getCurrentScore();
-		playerData[4] = client.getTotalScore();
-		playerData[5] = client.getAverageScore();
-		playerData[6] = client.getNumberPlayed();
-		playerData[7] = client.getNumberWon();
+		playerData[0] = player.getUsername();
+		playerData[1] = player.getClient().getIPAddress();
+		playerData[2] = player.getStatus();
+		playerData[3] = player.getCurrentScore();
+		playerData[4] = player.getTotalScore();
+		playerData[5] = player.getAverageScore();
+		playerData[6] = player.getNumberPlayed();
+		playerData[7] = player.getNumberWon();
 		
 		gui.updatePlayerTable(playerData); // Pass this player data to the GUI object so it can be displayed on the GUI.
 		
@@ -351,9 +351,9 @@ public class Main implements ActionListener, Runnable {
 		String serialisedPlayerData = Base64.getEncoder().encodeToString(bytes); 
 		
 		// Loop through each client and send the serialised player data to them:
-		for (int i = 0; i < clients.size(); i++) {
-			client = clients.get(i);
-			client.sendData("PYD"+serialisedPlayerData);
+		for (int i = 0; i < players.size(); i++) {
+			player = players.get(i);
+			player.getClient().sendData("PYD"+serialisedPlayerData);
 		}
 	}
 	
@@ -471,34 +471,34 @@ public class Main implements ActionListener, Runnable {
 			gameMode = gui.getChosenMode(); // Get and store the chosen game mode from the GUI.
 			
 			// Loop through the ArrayList of Client objects:
-			for (int i = 0; i < clients.size(); i++) {
-				Client client = clients.get(i); // Get the Client object in index i of the ArrayList.
+			for (int i = 0; i < players.size(); i++) {
+				Player player = players.get(i); // Get the Client object in index i of the ArrayList.
 				
 				// If the client is connected:
-				if (client.isConnected()) {
-					client.sendData("NRS"); // Tell the client that a new round is starting.
+				if (player.getClient().isConnected()) {
+					player.getClient().sendData("NRS"); // Tell the client that a new round is starting.
 					
 					// Send the problem's details to the client:
-					client.sendData("PLT"+problem.getTitle());
-					client.sendData("PLD"+problem.getDescription());
-					client.sendData("RST"+roundStartTime);
-					client.sendData("RET"+roundEndTime);
-					client.sendData("VBN"+problem.getVariableNamesAsString());
-					client.sendData("GMD"+Integer.toString(gameMode));
+					player.getClient().sendData("PLT"+problem.getTitle());
+					player.getClient().sendData("PLD"+problem.getDescription());
+					player.getClient().sendData("RST"+roundStartTime);
+					player.getClient().sendData("RET"+roundEndTime);
+					player.getClient().sendData("VBN"+problem.getVariableNamesAsString());
+					player.getClient().sendData("GMD"+Integer.toString(gameMode));
 					
-					client.setStatus("Coding"); // Change the client's status to "Coding".
-					updatePlayerTables(client); // Update the player tables so the change above is added.
+					player.setStatus("Coding"); // Change the client's status to "Coding".
+					updatePlayerTables(player); // Update the player tables so the change above is added.
 				}
 				
 				// If the client is not connected:
 				else {
-					client.setStatus("Disconnected"); // Change the client's status to "Disconnected".
-					updatePlayerTables(client); // Update the player tables so the change above is added.
+					player.setStatus("Disconnected"); // Change the client's status to "Disconnected".
+					updatePlayerTables(player); // Update the player tables so the change above is added.
 					
 					// Remove the client's username from the ArrayList of usernames in the ClientAccepter, so that it can be used again:
-					clientAccepter.removeUsername(client.getUsername());
+					clientAccepter.removeUsername(player.getUsername());
 					
-					clients.remove(client); // Remove the client from the ArrayList of clients.
+					players.remove(player); // Remove the client from the ArrayList of clients.
 				}
 				
 				inRound = true; // Change the boolean 'inRound' to true as a round has currently started.
@@ -884,22 +884,22 @@ public class Main implements ActionListener, Runnable {
 			}
 			
 			// Iterate through each client:
-			for (int i = 0; i < clients.size(); i++) {
+			for (int i = 0; i < players.size(); i++) {
 				
-				Client client = clients.get(i); // Get the client at index i.
+				Player player = players.get(i); // Get the client at index i.
 				
 				// Iterate through the selected players' details:
 				for (String[] playerDetails: selectedPlayers) {
 					
 					// If the IP addresses match:
-					if (client.getIPAddress().equals(playerDetails[0])) {
+					if (player.getClient().getIPAddress().equals(playerDetails[0])) {
 						
-						client.sendData("KCD"); // Send an indication that the player has been kicked to the client.
-						client.setStatus("Disconnected."); // Set the client's status to "Disconnected".
-						updatePlayerTables(client); // Update the player tables with the new status.
-						clientAccepter.removeUsername(client.getUsername()); // Remove the client's username from the arraylist of taken usernames.
-						clients.remove(client); // Remove the client from the arraylist of clients.
-						client.disconnect(); // Disconnect the client from the server.
+						player.getClient().sendData("KCD"); // Send an indication that the player has been kicked to the client.
+						player.setStatus("Disconnected."); // Set the client's status to "Disconnected".
+						updatePlayerTables(player); // Update the player tables with the new status.
+						clientAccepter.removeUsername(player.getUsername()); // Remove the client's username from the arraylist of taken usernames.
+						players.remove(player); // Remove the client from the arraylist of clients.
+						player.getClient().disconnect(); // Disconnect the client from the server.
 					}
 				}
 			}
@@ -916,24 +916,24 @@ public class Main implements ActionListener, Runnable {
 			}
 			
 			// Iterate through each client:
-			for (int i = 0; i < clients.size(); i++) {
+			for (int i = 0; i < players.size(); i++) {
 				
-				Client client = clients.get(i); // Get the client at index i.
+				Player player = players.get(i); // Get the client at index i.
 				
 				// Iterate through the selected players' details:
 				for (String[] playerDetails: selectedPlayers) {
 					
 					// If the IP addresses match:
-					if (client.getIPAddress().equals(playerDetails[0])) {
-						client.sendData("BND"); // Send an indication that the player has been banned to the client.
+					if (player.getClient().getIPAddress().equals(playerDetails[0])) {
+						player.getClient().sendData("BND"); // Send an indication that the player has been banned to the client.
 						
-						client.setStatus("Disconnected."); // Set the client's status to "Disconnected".
-						updatePlayerTables(client); // Update the player tables with the new status.
+						player.setStatus("Disconnected."); // Set the client's status to "Disconnected".
+						updatePlayerTables(player); // Update the player tables with the new status.
 						
-						clientAccepter.removeUsername(client.getUsername()); // Remove the client's username from the arraylist of taken usernames.
-						clients.remove(client); // Remove the client from the arraylist of clients.
+						clientAccepter.removeUsername(player.getUsername()); // Remove the client's username from the arraylist of taken usernames.
+						players.remove(player); // Remove the client from the arraylist of clients.
 						
-						client.disconnect(); // Disconnect the client from the server.
+						player.getClient().disconnect(); // Disconnect the client from the server.
 						
 						clientAccepter.banPlayer(playerDetails); // Ban the player.
 						
