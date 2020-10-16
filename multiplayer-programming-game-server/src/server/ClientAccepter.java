@@ -15,7 +15,7 @@ import java.util.ArrayList;
 public class ClientAccepter implements Runnable {
 	
 	private ServerSocket serverSocket; // Create a ServerSocket variable used to accept clients.
-	private ArrayList<Client> newClients = new ArrayList<Client>(); // Create an ArrayList to temporarily store created Client objects.
+	private ArrayList<Player> newClients = new ArrayList<Player>(); // Create an ArrayList to temporarily store created Client objects.
 	private ArrayList<String> usernames = new ArrayList<String>(); // Create an ArrayList to store the username of each client.
 	private String serverName; // Create a variable used to store the server's name so that it can send it to the clients who join.
 	
@@ -109,9 +109,9 @@ public class ClientAccepter implements Runnable {
 					
 					usernames.add(username); // Add the username to the ArrayList of usernames.
 					
-					Client client = new Client(username, clientSocket, inputStream, outputStream); // Create a Client object for the client.
+					Player player = new Player(username, clientSocket, inputStream, outputStream); // Create a Client object for the client.
 					
-					newClients.add(client); // Add the client to the ArrayList of temporary Client objects.
+					newClients.add(player); // Add the client to the ArrayList of temporary Client objects.
 					
 					// Send the server's name to the client:
 					outputStream.writeUTF("SVN"+serverName);
@@ -135,8 +135,8 @@ public class ClientAccepter implements Runnable {
 	
 	
 	// Method to get the Client objects which have not yet been handled by Main.java:
-	public ArrayList<Client> getNewClients() {
-		ArrayList<Client> tempNewClients = new ArrayList<Client>(newClients); // Copy the newClients ArrayList to a temporary variable.
+	public ArrayList<Player> getNewClients() {
+		ArrayList<Player> tempNewClients = new ArrayList<Player>(newClients); // Copy the newClients ArrayList to a temporary variable.
 		newClients.removeAll(newClients); // Remove all of the elements from newClients.
 		return tempNewClients; // Return the temporary variable.
 	}
