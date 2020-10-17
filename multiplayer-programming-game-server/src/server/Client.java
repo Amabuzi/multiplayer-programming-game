@@ -9,9 +9,7 @@ import java.util.Queue;
 
 public class Client implements Runnable {
 	
-	// Create variables used to store information about the client:
 	private String ipAddress;
-	
 	
 	// Create I/O stream variables used to send data to and receive data from the client:
 	private DataInputStream inputStream;
@@ -22,11 +20,10 @@ public class Client implements Runnable {
 	
 	private boolean isConnected = true; // Create a boolean used to store whether the client is connected or not.
 	
-	
 	private Queue<String> dataQueue = new LinkedList<String>(); // Create a queue to temporarily store the data received from the client.
 
+	
 	public Client(Socket socket, DataInputStream inputStream, DataOutputStream outputStream) {
-		// Store the username, I/O stream and socket parameters as class variables:
 		
 		this.inputStream = inputStream;
 		this.outputStream = outputStream;

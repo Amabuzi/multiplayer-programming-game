@@ -1,4 +1,4 @@
-package server; //TODO modularise
+package server;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -8,54 +8,28 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.LinkedList;
-import java.util.Queue;
 
 public class Player {
 	
-	private Client client;	
+	private Client client;
+
+	private String username;
+	private String status = "Waiting";
+
 	private int currentScore = 0;
 	private int totalScore = 0;
 	private int numberPlayed = 0;
 	private int numberWon = 0;
 	private int numberOfTests = 0;
 	
-	private String status = "Waiting";
-	
 	private ArrayList<String[]> failedResults = new ArrayList<String[]>(); // Create an array list to store the client's failed test results.
-	
-	// Create variables used to store information about the client:
-	private String username;
-	
-	
-	// Create I/O stream variables used to send data to and receive data from the client:
-	private DataInputStream inputStream;
-	private DataOutputStream outputStream;
-	
-	// Create a socket variable to used to access the socket used to connect the client to the server:
-	private Socket socket;
-	
-	private boolean isConnected = true; // Create a boolean used to store whether the client is connected or not.
-	
-	
-	private Queue<String> dataQueue = new LinkedList<String>(); // Create a queue to temporarily store the data received from the client.
 	
 	
 	// Constructor which is called when this object is created:
 	public Player(String username, Socket socket, DataInputStream inputStream, DataOutputStream outputStream) {
-		
-		// Store the username, I/O stream and socket parameters as class variables:
 		this.username = username;
-		this.inputStream = inputStream;
-		this.outputStream = outputStream;
-		this.socket = socket;
-		
-		
 		this.client = new Client(socket, inputStream, outputStream);
-		
 	}
-	
-	//END NETWORK
 	
 	public Client getClient() {
 		return client;
@@ -160,9 +134,6 @@ public class Player {
 		
 		failedResults.removeAll(failedResults); // Reset the failed results ArrayList.
 	}
-	
-	
-	
 	
 	
 	// Method to set the failedResults class variable to the given ArrayList:
