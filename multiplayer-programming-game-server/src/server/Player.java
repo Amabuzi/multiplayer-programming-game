@@ -157,7 +157,7 @@ public class Player {
 		// Using Base64, encode the byte[] array to a String to create the serialised player data string:
 		String serialisedFailedResults = Base64.getEncoder().encodeToString(bytes);
 		
-		sendData("TRS"+serialisedFailedResults); // Send the failed results to the client.
+		client.sendData("TRS"+serialisedFailedResults); // Send the failed results to the client.
 		
 		failedResults.removeAll(failedResults); // Reset the failed results ArrayList.
 	}
