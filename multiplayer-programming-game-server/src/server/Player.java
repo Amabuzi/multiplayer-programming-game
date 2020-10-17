@@ -52,7 +52,6 @@ public class Player {
 		
 		
 		this.client = new Client(socket, inputStream, outputStream);
-		client.run();
 		
 	}
 	
